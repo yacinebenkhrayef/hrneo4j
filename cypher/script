@@ -1,0 +1,207 @@
+// 1. Create Employee Nodes
+// All employee-specific properties are added here.
+// Note: Properties that will become separate nodes (Education, Gender, OverTime, etc.) are removed from Employee node properties.
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+ON CREATE SET
+    e.age = toInteger(row.Age),
+    e.dailyRate = toInteger(row.DailyRate),
+    e.distanceFromHome = toInteger(row.DistanceFromHome),
+    e.employeeCount = toInteger(row.EmployeeCount), // Often 1, but include it
+    e.hourlyRate = toInteger(row.HourlyRate),
+    e.jobInvolvement = toInteger(row.JobInvolvement),
+    e.jobLevel = toInteger(row.JobLevel),
+    e.monthlyIncome = toInteger(row.MonthlyIncome),
+    e.monthlyRate = toInteger(row.MonthlyRate),
+    e.numCompaniesWorked = toInteger(row.NumCompaniesWorked),
+    e.over18 = row.Over18, // Boolean/String 'Y' or 'N'
+    e.percentSalaryHike = toInteger(row.PercentSalaryHike),
+    e.standardHours = toInteger(row.StandardHours), // Often a standard like 80
+    e.stockOptionLevel = toInteger(row.StockOptionLevel),
+    e.totalWorkingYears = toInteger(row.TotalWorkingYears),
+    e.trainingTimesLastYear = toInteger(row.TrainingTimesLastYear),
+    e.yearsAtCompany = toInteger(row.YearsAtCompany),
+    e.yearsInCurrentRole = toInteger(row.YearsInCurrentRole),
+    e.yearsSinceLastPromotion = toInteger(row.YearsSinceLastPromotion),
+    e.yearsWithCurrManager = toInteger(row.YearsWithCurrManager)
+ON MATCH SET // Update properties if the employee already exists
+    e.age = toInteger(row.Age),
+    e.dailyRate = toInteger(row.DailyRate),
+    e.distanceFromHome = toInteger(row.DistanceFromHome),
+    e.employeeCount = toInteger(row.EmployeeCount),
+    e.hourlyRate = toInteger(row.HourlyRate),
+    e.jobInvolvement = toInteger(row.JobInvolvement),
+    e.jobLevel = toInteger(row.JobLevel),
+    e.monthlyIncome = toInteger(row.MonthlyIncome),
+    e.monthlyRate = toInteger(row.MonthlyRate),
+    e.numCompaniesWorked = toInteger(row.NumCompaniesWorked),
+    e.over18 = row.Over18,
+    e.percentSalaryHike = toInteger(row.PercentSalaryHike),
+    e.standardHours = toInteger(row.StandardHours),
+    e.stockOptionLevel = toInteger(row.StockOptionLevel),
+    e.totalWorkingYears = toInteger(row.TotalWorkingYears),
+    e.trainingTimesLastYear = toInteger(row.TrainingTimesLastYear),
+    e.yearsAtCompany = toInteger(row.YearsAtCompany),
+    e.yearsInCurrentRole = toInteger(row.YearsInCurrentRole),
+    e.yearsSinceLastPromotion = toInteger(row.YearsSinceLastPromotion),
+    e.yearsWithCurrManager = toInteger(row.YearsWithCurrManager);
+
+// Create indexes for faster lookups - IMPORTANT TO RUN THESE FIRST
+CREATE INDEX FOR (e:Employee) ON (e.employeeNumber);
+CREATE INDEX FOR (d:Department) ON (d.name);
+CREATE INDEX FOR (j:JobRole) ON (j.name);
+CREATE INDEX FOR (ef:EducationField) ON (ef.name);
+CREATE INDEX FOR (el:EducationLevel) ON (el.level); // New Index
+CREATE INDEX FOR (g:Gender) ON (g.type); // New Index
+CREATE INDEX FOR (bt:BusinessTravel) ON (bt.type);
+CREATE INDEX FOR (ms:MaritalStatus) ON (ms.status);
+CREATE INDEX FOR (ots:OverTimeStatus) ON (ots.status); // New Index
+CREATE INDEX FOR (as:AttritionStatus) ON (as.status); // New Index
+CREATE INDEX FOR (pr:PerformanceRating) ON (pr.rating); // New Index
+CREATE INDEX FOR (jsl:JobSatisfactionLevel) ON (jsl.level); // New Index
+CREATE INDEX FOR (esl:EnvironmentSatisfactionLevel) ON (esl.level); // New Index
+CREATE INDEX FOR (wlbl:WorkLifeBalanceLevel) ON (wlbl.level); // New Index
+
+----------------------------------------------------------------------------------------------------
+
+// 2. Create Department Nodes and :WORKS_IN Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (d:Department {name: row.Department}); // Create unique Department nodes based on their name
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (d:Department {name: row.Department})
+MERGE (e)-[:WORKS_IN]->(d);
+
+----------------------------------------------------------------------------------------------------
+
+// 3. Create JobRole Nodes and :HAS_ROLE Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (j:JobRole {name: row.JobRole}); // Create unique JobRole nodes based on their name
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (j:JobRole {name: row.JobRole})
+MERGE (e)-[:HAS_ROLE]->(j);
+
+----------------------------------------------------------------------------------------------------
+
+// 4. Create EducationField Nodes and :STUDIED_IN Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (ef:EducationField {name: row.EducationField}); // Create unique EducationField nodes
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (ef:EducationField {name: row.EducationField})
+MERGE (e)-[:STUDIED_IN]->(ef);
+
+----------------------------------------------------------------------------------------------------
+
+// 5. Create EducationLevel Nodes and :HAS_EDUCATION Relationships
+// Assuming 'Education' column contains numerical levels (e.g., 1, 2, 3, 4, 5)
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (el:EducationLevel {level: toInteger(row.Education)});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (el:EducationLevel {level: toInteger(row.Education)})
+MERGE (e)-[:HAS_EDUCATION]->(el);
+
+----------------------------------------------------------------------------------------------------
+
+// 6. Create Gender Nodes and :HAS_GENDER Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (g:Gender {type: row.Gender});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (g:Gender {type: row.Gender})
+MERGE (e)-[:HAS_GENDER]->(g);
+
+----------------------------------------------------------------------------------------------------
+
+// 7. Create BusinessTravel Nodes and :TRAVELS_FOR_WORK Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (bt:BusinessTravel {type: row.BusinessTravel}); // Create unique BusinessTravel nodes
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (bt:BusinessTravel {type: row.BusinessTravel})
+MERGE (e)-[:TRAVELS_FOR_WORK]->(bt);
+
+----------------------------------------------------------------------------------------------------
+
+// 8. Create MaritalStatus Nodes and :HAS_MARITAL_STATUS Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (ms:MaritalStatus {status: row.MaritalStatus}); // Create unique MaritalStatus nodes
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (ms:MaritalStatus {status: row.MaritalStatus})
+MERGE (e)-[:HAS_MARITAL_STATUS]->(ms);
+
+----------------------------------------------------------------------------------------------------
+
+// 9. Create OverTimeStatus Nodes and :HAS_OVERTIME Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (ots:OverTimeStatus {status: row.OverTime});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (ots:OverTimeStatus {status: row.OverTime})
+MERGE (e)-[:HAS_OVERTIME]->(ots);
+
+----------------------------------------------------------------------------------------------------
+
+// 10. Create AttritionStatus Nodes and :HAS_ATTRITION Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (as:AttritionStatus {status: row.Attrition});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (as:AttritionStatus {status: row.Attrition})
+MERGE (e)-[:HAS_ATTRITION]->(as);
+
+----------------------------------------------------------------------------------------------------
+
+// 11. Create PerformanceRating Nodes and :HAS_PERFORMANCE Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (pr:PerformanceRating {rating: toInteger(row.PerformanceRating)});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (pr:PerformanceRating {rating: toInteger(row.PerformanceRating)})
+MERGE (e)-[:HAS_PERFORMANCE]->(pr);
+
+----------------------------------------------------------------------------------------------------
+
+// 12. Create JobSatisfactionLevel Nodes and :HAS_JOB_SATISFACTION Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (jsl:JobSatisfactionLevel {level: toInteger(row.JobSatisfaction)});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (jsl:JobSatisfactionLevel {level: toInteger(row.JobSatisfaction)})
+MERGE (e)-[:HAS_JOB_SATISFACTION]->(jsl);
+
+----------------------------------------------------------------------------------------------------
+
+// 13. Create EnvironmentSatisfactionLevel Nodes and :HAS_ENV_SATISFACTION Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (esl:EnvironmentSatisfactionLevel {level: toInteger(row.EnvironmentSatisfaction)});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (esl:EnvironmentSatisfactionLevel {level: toInteger(row.EnvironmentSatisfaction)})
+MERGE (e)-[:HAS_ENV_SATISFACTION]->(esl);
+
+----------------------------------------------------------------------------------------------------
+
+// 14. Create WorkLifeBalanceLevel Nodes and :HAS_WORK_LIFE_BALANCE Relationships
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MERGE (wlbl:WorkLifeBalanceLevel {level: toInteger(row.WorkLifeBalance)});
+
+LOAD CSV WITH HEADERS FROM 'file:///your_file.csv' AS row
+MATCH (e:Employee {employeeNumber: toInteger(row.EmployeeNumber)})
+MATCH (wlbl:WorkLifeBalanceLevel {level: toInteger(row.WorkLifeBalance)})
+MERGE (e)-[:HAS_WORK_LIFE_BALANCE]->(wlbl);
